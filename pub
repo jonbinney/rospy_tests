@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+import rospy
+import sys
+from std_msgs.msg import String
+
+pub_rate = int(sys.argv[1])
+queue_size = None
+if len(sys.argv) > 2:
+	queue_size = int(sys.argv[2])
+
+hz_window = 1.0
+
+rospy.init_node('pub', anonymous=True)
+
+msg_times = []
+pub = rospy.Publisher('foo', String, queue_size = queue_size)
+
+r = rospy.Rate(pub_rate)
+count = 0
+last_hz_pub = rospy.Time.now()
+while not rospy.is_shutdown():
+	pub.publish('%d ' + '='*1000)
+	now = rospy.Time.now()
+	msg_times.append(now)
+
+	if (now - last_hz_pub).to_sec() > hz_window:
+		msg_times = [t for t in msg_times if (now - t).to_sec() < hz_window]
+
+		msg_rate = 0.0
+		if len(msg_times) >= 2:
+			msg_rate = (len(msg_times) - 1) / (msg_times[-1] - msg_times[0]).to_sec()
+		print msg_rate
+
+		last_hz_pub = now
+	r.sleep()
+
